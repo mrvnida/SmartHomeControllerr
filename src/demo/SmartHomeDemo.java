@@ -187,11 +187,17 @@ public class SmartHomeDemo {
         while (iterator.hasNext()) {
             SmartDevice device = iterator.next();
             if (device instanceof TemperatureSensorDecorator) {
-                ((TemperatureSensorDecorator) device).readTemperature();
+                if(device.getStatus().isOn()) {
+                	((TemperatureSensorDecorator) device).readTemperature();
+                }
             } else if (device instanceof HumiditySensorDecorator) {
-                ((HumiditySensorDecorator) device).readHumidity();
+                if (device.getStatus().isOn()) {
+                	((HumiditySensorDecorator) device).readHumidity();
+                }
             } else if (device instanceof MotionSensorDecorator) {
-                ((MotionSensorDecorator) device).detectMotion();
+                if(device.getStatus().isOn()) {
+                	((MotionSensorDecorator) device).detectMotion();
+                }
             }
         }
     }
