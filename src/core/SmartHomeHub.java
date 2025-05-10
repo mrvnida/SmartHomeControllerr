@@ -1,22 +1,22 @@
 package core;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import core.managers.DeviceManager;
+import core.managers.UserManager;
+import core.services.CommandRouter;
+import core.services.NotificationService;
 import java.util.List;
-import java.util.Map;
 
-// Singleton pattern implementation using Bill Pugh's Solution
 public class SmartHomeHub {
+    private final DeviceManager deviceManager;
+    private final UserManager userManager;
+    private final CommandRouter commandRouter;
+    private final NotificationService notificationService;
 
-    private List<SmartDevice> devices;
-    private List<User> registeredUsers;
-    private Map<String, List<SmartDevice>> roomDevices;
-
-    // Bill Pugh Singleton Implementation
-    private SmartHomeHub() {
-        devices = new ArrayList<>();
-        registeredUsers = new ArrayList<>();
-        roomDevices = new HashMap<>();
+    public SmartHomeHub() {
+        this.deviceManager = new DeviceManager();
+        this.userManager = new UserManager();
+        this.commandRouter = new CommandRouter(deviceManager);
+        this.notificationService = new NotificationService(userManager);
     }
 
     private static class SingletonHelper {
@@ -27,69 +27,13 @@ public class SmartHomeHub {
         return SingletonHelper.INSTANCE;
     }
 
-    // Device management
-    public void registerDevice(SmartDevice device, String room) {
-        devices.add(device);
-
-        // Add device to room mapping
-        if (!roomDevices.containsKey(room)) {
-            roomDevices.put(room, new ArrayList<>());
-        }
-        roomDevices.get(room).add(device);
-
-        System.out.println("Device " + device.getName() + " registered in " + room);
-    }
-
-    public void removeDevice(SmartDevice device) {
-        devices.remove(device);
-
-        // Remove from room mapping
-        for (List<SmartDevice> roomDeviceList : roomDevices.values()) {
-            roomDeviceList.remove(device);
-        }
-
-        System.out.println("Device " + device.getName() + " removed");
-    }
-
-    // User management
-    public void registerUser(User user) {
-        registeredUsers.add(user);
-        System.out.println("User " + user.getName() + " registered");
-    }
-
-    public void removeUser(User user) {
-        registeredUsers.remove(user);
-        System.out.println("User " + user.getName() + " removed");
-    }
-
-
-    public void broadcastNotification(SmartDevice source, String event, String message) {
-        System.out.println("[HUB BROADCAST] From " + source.getName() + ": " + event + " - " + message);
-
-        for (User user : registeredUsers) {
-            user.update(source, event, message);
-        }
-    }
-
-    // Iterator implementation for devices
-    public DeviceIterator getDeviceIterator() {
-        return new DeviceIteratorImpl(devices);
-    }
-
-    public DeviceIterator getRoomDeviceIterator(String room) {
-        if (roomDevices.containsKey(room)) {
-            return new DeviceIteratorImpl(roomDevices.get(room));
-        } else {
-            return new DeviceIteratorImpl(new ArrayList<>());
-        }
-    }
-
-    // Inner Iterator class
+    // Iterator interface
     public interface DeviceIterator {
         boolean hasNext();
         SmartDevice next();
     }
 
+    // Iterator implementation
     private class DeviceIteratorImpl implements DeviceIterator {
         private List<SmartDevice> devicesList;
         private int position;
@@ -113,21 +57,51 @@ public class SmartHomeHub {
         }
     }
 
-    // Status report
+    // Iterator access methods
+    public DeviceIterator getDeviceIterator() {
+        return new DeviceIteratorImpl(deviceManager.getAllDevices());
+    }
+
+    public DeviceIterator getRoomDeviceIterator(String room) {
+        return new DeviceIteratorImpl(deviceManager.getDevicesInRoom(room));
+    }
+
+    public void registerDevice(SmartDevice device, String room) {
+        deviceManager.registerDevice(device, room);
+    }
+
+    public void removeDevice(SmartDevice device) {
+        deviceManager.removeDevice(device);
+    }
+
+    public void registerUser(User user) {
+        userManager.registerUser(user);
+    }
+
+    public void removeUser(User user) {
+        userManager.removeUser(user);
+    }
+
+    public void sendCommand(SmartDevice source, String targetDeviceName, String command, String[] params) {
+        commandRouter.routeCommand(source, targetDeviceName, command, params);
+    }
+
+    public void broadcastNotification(SmartDevice source, String event, String message) {
+        notificationService.broadcastNotification(source, event, message);
+    }
+
     public void generateStatusReport() {
         System.out.println("\n===== SMART HOME STATUS REPORT =====");
 
-        for (String room : roomDevices.keySet()) {
+        deviceManager.getRoomDevices().forEach((room, devices) -> {
             System.out.println("\nRoom: " + room);
             System.out.println("-------------------------");
 
-            DeviceIterator iterator = getRoomDeviceIterator(room);
-            while (iterator.hasNext()) {
-                SmartDevice device = iterator.next();
+            devices.forEach(device -> {
                 System.out.println("Device: " + device.getName());
                 System.out.println(device.getStatus());
-            }
-        }
+            });
+        });
 
         System.out.println("=================================\n");
     }
