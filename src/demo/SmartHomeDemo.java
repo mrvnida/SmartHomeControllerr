@@ -8,6 +8,8 @@ import strategies.*;
 import observers.*;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class SmartHomeDemo {
@@ -71,11 +73,12 @@ public class SmartHomeDemo {
         while (running) {
             System.out.println("\n==== SMART HOME CONTROL SYSTEM ====");
             System.out.println("1. Show all devices");
-            System.out.println("2. Control a device");
-            System.out.println("3. Generate status report");
-            System.out.println("4. View event logs");
-            System.out.println("5. View security events");
-            System.out.println("6. Simulate events");
+            System.out.println("2. Control devices");
+            System.out.println("3. Set Security Mode (Away/Pet/Normal)");
+            System.out.println("4. Generate status report");
+            System.out.println("5. View event logs");
+            System.out.println("6. View security events");
+            System.out.println("7. Simulate events");
             System.out.println("0. Exit");
             System.out.print("Enter your choice: ");
 
@@ -90,10 +93,11 @@ public class SmartHomeDemo {
             switch (choice) {
                 case 1: showAllDevices(); break;
                 case 2: controlDevice(); break;
-                case 3: hub.generateStatusReport(); break;
-                case 4: loggingObserver.displayLog(); break;
-                case 5: securityObserver.displaySecurityEvents(); break;
-                case 6: simulateEvents(); break;
+                case 3: simulateCameraModeChange(); break;
+                case 4: hub.generateStatusReport(); break;
+                case 5: loggingObserver.displayLog(); break;
+                case 6: securityObserver.displaySecurityEvents(); break;
+                case 7: simulateEvents(); break;
                 case 0:
                     running = false;
                     System.out.println("Shutting down Smart Home System...");
@@ -155,7 +159,6 @@ public class SmartHomeDemo {
         System.out.println("\nActions:");
         System.out.println("1. Turn ON");
         System.out.println("2. Turn OFF");
-        System.out.println("3. Execute custom command");
 
         System.out.print("Enter action number: ");
         int actionChoice;
@@ -167,17 +170,24 @@ public class SmartHomeDemo {
         }
 
         switch (actionChoice) {
-            case 1: targetDevice.turnOn(); break;
-            case 2: targetDevice.turnOff(); break;
-            case 3:
-                System.out.print("Enter command: ");
-                String command = scanner.nextLine();
-                targetDevice.executeAction(command, new String[]{});
+            case 1:
+                if (targetDevice.isOn()) {
+                    System.out.println("Warning: Device is already on!");
+                    controlDevice();
+                } else {
+                    targetDevice.turnOn();
+                }
                 break;
-            default:
-                System.out.println("Invalid choice.");
+            case 2:
+                if (!targetDevice.isOn()) {
+                    System.out.println("Warning: Device is already off!");
+                    controlDevice();
+                } else {
+                    targetDevice.turnOff();
+                }
                 break;
         }
+
     }
 
     private void simulateEvents() {
@@ -188,19 +198,90 @@ public class SmartHomeDemo {
             SmartDevice device = iterator.next();
             if (device instanceof TemperatureSensorDecorator) {
                 if(device.getStatus().isOn()) {
-                	((TemperatureSensorDecorator) device).readTemperature();
+                    ((TemperatureSensorDecorator) device).readTemperature();
                 }
             } else if (device instanceof HumiditySensorDecorator) {
                 if (device.getStatus().isOn()) {
-                	((HumiditySensorDecorator) device).readHumidity();
+                    ((HumiditySensorDecorator) device).readHumidity();
                 }
             } else if (device instanceof MotionSensorDecorator) {
                 if(device.getStatus().isOn()) {
-                	((MotionSensorDecorator) device).detectMotion();
+                    // Random motion detection
+                    boolean motionDetected = Math.random() > 0.5; // 50% chance of motion detection
+                    ((MotionSensorDecorator) device).simulateMotion(motionDetected);
+
+                    // Create log
+                    SmartDevice innerDevice = ((MotionSensorDecorator) device).getDecoratedDevice();
+                    String deviceName = innerDevice.getName();
+                    System.out.println(deviceName + " - Motion status: " +
+                            (motionDetected ? "Motion Detected" : "No Motion"));
                 }
             }
         }
+
+        System.out.println("Events successfully simulated.");
     }
+
+    private void simulateCameraModeChange() {
+        System.out.println("\nCamera Mode Simulation:");
+        System.out.println("1. Leaving Home (Set all cameras to AWAY mode)");
+        System.out.println("2. Coming Home (Set all cameras to NORMAL mode)");
+        System.out.println("3. Pet Care Mode (Set all cameras to PET mode)");
+
+        System.out.print("Your choice: ");
+        int modeChoice;
+        try {
+            modeChoice = Integer.parseInt(scanner.nextLine());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input. Please enter a number.");
+            return;
+        }
+
+        if (modeChoice >= 1 && modeChoice <= 3) {
+            // Change modes for all cameras at once
+            String newMode;
+            switch (modeChoice) {
+                case 1: newMode = "AWAY"; break;
+                case 2: newMode = "NORMAL"; break;
+                case 3: newMode = "PET"; break;
+                default: return;
+            }
+
+            changeAllCameraModes(newMode);
+        }
+    }
+
+    // Change modes for all cameras
+    private void changeAllCameraModes(String newMode) {
+        int changedCount = 0;
+        SmartHomeHub.DeviceIterator iterator = hub.getDeviceIterator();
+
+        while (iterator.hasNext()) {
+            SmartDevice device = iterator.next();
+            SmartCamera camera = null;
+
+            if (device instanceof SmartCamera) {
+                camera = (SmartCamera) device;
+            } else if (device instanceof MotionSensorDecorator) {
+                SmartDevice decoratedDevice = ((MotionSensorDecorator) device).getDecoratedDevice();
+                if (decoratedDevice instanceof SmartCamera) {
+                    camera = (SmartCamera) decoratedDevice;
+                }
+            }
+
+            if (camera != null) {
+                camera.setMode(newMode);
+                changedCount++;
+            }
+        }
+
+        if (changedCount > 0) {
+            System.out.println(changedCount + " cameras set to " + newMode + " mode.");
+        } else {
+            System.out.println("No cameras found in the system.");
+        }
+    }
+
 
     public static void main(String[] args) {
         SmartHomeDemo demo = new SmartHomeDemo();

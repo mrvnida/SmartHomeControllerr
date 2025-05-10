@@ -20,7 +20,7 @@ public abstract class BaseSmartDevice implements SmartDevice {
 
     public BaseSmartDevice(String name) {
         this.name = name;
-        this.isOn = false;
+        this.isOn = true;
         this.status = new DeviceStatus(false);
         this.observers = new ArrayList<>();
         this.controlStrategy = new ManualControlStrategy(); // Default strategy

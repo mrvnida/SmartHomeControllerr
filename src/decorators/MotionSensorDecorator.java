@@ -28,7 +28,11 @@ public class MotionSensorDecorator extends DeviceDecorator {
         decoratedDevice.getStatus().setAttribute("motionSensitivity", String.valueOf(sensitivityLevel));
     }
 
-    public boolean isMotionDetected() {
+    public SmartDevice getDecoratedDevice() {
+        return this.decoratedDevice;
+    }
+
+        public boolean isMotionDetected() {
         return motionDetected;
     }
 

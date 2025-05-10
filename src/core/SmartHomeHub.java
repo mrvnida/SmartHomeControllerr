@@ -62,17 +62,6 @@ public class SmartHomeHub {
         System.out.println("User " + user.getName() + " removed");
     }
 
-    // Mediator functionality
-    public void sendCommand(SmartDevice source, String targetDeviceName, String command, String[] params) {
-        for (SmartDevice device : devices) {
-            if (device.getName().equals(targetDeviceName)) {
-                System.out.println("Hub routing command from " + source.getName() + " to " + targetDeviceName + ": " + command);
-                device.executeAction(command, params);
-                return;
-            }
-        }
-        System.out.println("Target device not found: " + targetDeviceName);
-    }
 
     public void broadcastNotification(SmartDevice source, String event, String message) {
         System.out.println("[HUB BROADCAST] From " + source.getName() + ": " + event + " - " + message);
